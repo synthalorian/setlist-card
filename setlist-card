@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Print a fixed-width rehearsal card from a setlist JSON file."""
+
+import json
+import sys
+
+LINE_WIDTH = 72
+TITLE_WIDTH = 32
+KEY_WIDTH = 5
+BPM_WIDTH = 4
+CAPO_WIDTH = 27
+
+
+def _fit(value, width, align):
+    text = str(value)[:width]
+    if align == "right":
+        return text.rjust(width)
+    return text.ljust(width)
+
+
+def format_song(index, song):
+    capo = song["capo"]
+    if capo == 0:
+        capo_field = " " * CAPO_WIDTH
+    else:
+        capo_field = _fit(f"capo {capo}", CAPO_WIDTH, "left")
+    line1 = (
+        f"{index:02d} "
+        f"{_fit(song['title'], TITLE_WIDTH, 'left')}"
+        f"{_fit(song['key'], KEY_WIDTH, 'left')}"
+        f"{_fit(song['bpm'], BPM_WIDTH, 'right')} "
+        f"{capo_field}"
+    )
+    notes = song["notes"] if song["notes"] is not None else ""
+    line2 = ("  " + str(notes))[:LINE_WIDTH]
+    return line1 + "\n" + line2
+
+
+def render(songs):
+    if not songs:
+        return ""
+    blocks = [format_song(index, song) for index, song in enumerate(songs, start=1)]
+    return "\n\n".join(blocks) + "\n"
+
+
+def main(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 1:
+        sys.stderr.write("usage: setlist-card songs.json\n")
+        return 2
+    with open(args[0], encoding="utf-8") as handle:
+        songs = json.load(handle)
+    sys.stdout.write(render(songs))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
